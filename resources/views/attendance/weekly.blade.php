@@ -1,0 +1,215 @@
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Weekly Attendance Report') }}
+        </h2>
+    </x-slot>
+
+    <div class="py-12 bg-slate-100 min-h-screen">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="mb-6">
+                <div class="rounded-2xl bg-slate-100 p-4 shadow-sm">
+                    <nav class="flex flex-wrap items-center justify-between gap-4">
+                        @php $weeklyActive = request()->routeIs('attendance.weekly'); @endphp
+                        <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $weeklyActive ? 'border border-slate-300 bg-slate-200 text-slate-900 shadow-sm' : 'border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300' }}">Daily report</a>
+                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $weeklyActive ? 'border-4 border-black bg-indigo-600 text-white shadow-xl relative z-10 -translate-y-1 hover:bg-indigo-700' : 'border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300 opacity-80' }}">Weekly report</a>
+                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-emerald-600 bg-emerald-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-emerald-700 inline-flex items-center justify-center {{ request()->routeIs('attendance.monthly') ? 'opacity-100 filter-none' : 'opacity-50 filter blur-sm' }}">Monthly report</a>
+                        <a href="{{ route('attendance.quarterly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-amber-600 bg-amber-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-amber-700 inline-flex items-center justify-center">Quartely report</a>
+                    </nav>
+                    <div class="mt-4 flex flex-wrap gap-3" id="reportTabs">
+                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" id="overallTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs('attendance.weekly') && !request()->query('dept')) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Overall</a>
+                        <a href="{{ route('attendance.weekly.departments', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" id="departmentTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs('attendance.weekly.departments')) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Departments</a>
+                        <a href="{{ route('attendance.workers', ['date' => request()->query('date') ?? $reportDate->toDateString(), 'scope' => 'weekly']) }}" id="workersTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs('attendance.workers') && (request()->query('scope', 'daily') === 'weekly')) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Workers</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6 rounded-2xl bg-white p-6 shadow-sm">
+                <div class="flex justify-center">
+                    <h3 class="text-xl font-semibold text-center">Week of {{ $startOfWeek->format('M j, Y') }} &ndash; {{ $endOfWeek->format('M j, Y') }}</h3>
+                </div>
+            </div>
+
+            {{-- Departments moved to separate weekly departments page --}}
+
+            <div class="grid gap-6 mb-6 xl:grid-cols-2">
+                <div class="rounded-lg bg-white p-6 shadow-sm order-last xl:order-first">
+                    <h3 class="text-lg font-semibold mb-4">Weekly attendance rate by day</h3>
+                    <div class="h-72">
+                        @if(empty($weeklyData) || count($weeklyData) === 0)
+                            <div class="h-72 flex items-center justify-center text-slate-500">No attendance records for this week.</div>
+                        @else
+                            <canvas id="weeklyReportChart" data-labels='@json($weeklyLabels)' data-data='@json($weeklyData)'></canvas>
+                        @endif
+                        </div>
+                </div>
+
+                <div class="rounded-lg bg-white p-6 shadow-sm order-first xl:order-last">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-xl bg-slate-50 p-4">
+                            <div class="text-sm uppercase tracking-wide text-slate-500">Overall summary</div>
+                            <div class="mt-3 text-3xl font-semibold text-slate-900">{{ $selectedSummary['total'] }}</div>
+                            <div class="mt-2 text-sm text-slate-600">Total records for attended days only</div>
+                        </div>
+                        <div class="grid gap-4">
+                            <div class="rounded-xl bg-emerald-50 p-4">
+                                <div class="text-sm uppercase tracking-wide text-emerald-700">Present</div>
+                                <div class="mt-2 text-2xl font-semibold text-emerald-800">{{ $selectedSummary['present'] }}</div>
+                            </div>
+                            <div class="rounded-xl bg-red-50 p-4">
+                                <div class="text-sm uppercase tracking-wide text-red-700">Absent</div>
+                                <div class="mt-2 text-2xl font-semibold text-red-800">{{ $selectedSummary['absent'] }}</div>
+                            </div>
+                            <div class="rounded-xl bg-amber-50 p-4">
+                                <div class="text-sm uppercase tracking-wide text-amber-700">Late</div>
+                                <div class="mt-2 text-2xl font-semibold text-amber-800">{{ $selectedSummary['late'] }}</div>
+                            </div>
+                            <div class="rounded-xl bg-slate-50 p-4">
+                                <div class="text-sm uppercase tracking-wide text-slate-700">Attendance rate</div>
+                                <div class="mt-2 text-2xl font-semibold text-slate-900">{{ $selectedSummary['rate'] }}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-lg bg-white p-6 shadow-sm">
+                <h3 class="text-lg font-semibold mb-4">Daily breakdown</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-3 py-2 text-left font-medium">Date</th>
+                                <th class="px-3 py-2 text-left font-medium">Total</th>
+                                <th class="px-3 py-2 text-left font-medium">Present</th>
+                                <th class="px-3 py-2 text-left font-medium">Absent</th>
+                                <th class="px-3 py-2 text-left font-medium">Late</th>
+                                <th class="px-3 py-2 text-left font-medium">Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach($dailySummaries as $summary)
+                                <tr>
+                                    <td class="px-3 py-2 font-medium text-slate-900">{{ $summary['date'] }}</td>
+                                    <td class="px-3 py-2">{{ $summary['total'] }}</td>
+                                    <td class="px-3 py-2 text-green-600">{{ $summary['present'] }}</td>
+                                    <td class="px-3 py-2 text-red-600">{{ $summary['absent'] }}</td>
+                                    <td class="px-3 py-2 text-amber-600">{{ $summary['late'] }}</td>
+                                    <td class="px-3 py-2">{{ $summary['rate'] }}%</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('weeklyReportChart');
+            if (!ctx) return;
+
+            const weeklyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: @json($weeklyLabels),
+                    datasets: [{
+                        label: 'Attendance rate',
+                        data: @json($weeklyData),
+                        backgroundColor: [
+                            '#6366f1',
+                            '#f97316',
+                            '#22c55e',
+                            '#ec4899',
+                            '#3b82f6',
+                            '#10b981',
+                            '#f59e0b'
+                        ],
+                        borderRadius: 8,
+                        maxBarThickness: 48,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: function(_, elements) {
+                        if (!elements.length) {
+                            return;
+                        }
+
+                        const index = elements[0].index;
+                        const selectedDate = weeklyChart.data.labels[index];
+
+                        if (!selectedDate) {
+                            return;
+                        }
+
+                        window.location.href = '{{ route('dashboard') }}?date=' + encodeURIComponent(selectedDate);
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            grid: { color: '#e2e8f0' }
+                        },
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const deptCtx = document.getElementById('departmentStatusChart');
+            if (deptCtx) {
+                const present = {{ $selectedSummary['present'] ?? 0 }};
+                const absent = {{ $selectedSummary['absent'] ?? 0 }};
+                const late = {{ $selectedSummary['late'] ?? 0 }};
+
+                new Chart(deptCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Present', 'Absent', 'Late'],
+                        datasets: [{
+                            data: [present, absent, late],
+                            backgroundColor: ['#16a34a', '#ef4444', '#f59e0b'],
+                            borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+                            borderWidth: 2,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle' } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const total = context.dataset.data.reduce((sum, item) => sum + item, 0);
+                                        const percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</x-app-layout>
