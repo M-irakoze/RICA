@@ -12,10 +12,10 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/artisan/migrate', function () {
+$migrateHandler = function () {
     $secret = request('key');
     $appKey = config('app.key') ?: env('APP_KEY');
-    if ($secret !== $appKey && urldecode($secret) !== $appKey && $secret !== 'migrate-now') {
+    if ($secret !== $appKey && urldecode($secret) !== $appKey && $secret !== 'migrate-now' && $secret !== 'now') {
         return response()->json(['error' => 'Unauthorized. Provide correct APP_KEY or key=migrate-now parameter.'], 403);
     }
     try {
@@ -30,7 +30,10 @@ Route::get('/artisan/migrate', function () {
             'message' => $e->getMessage()
         ], 500);
     }
-});
+};
+
+Route::get('/artisan/migrate', $migrateHandler);
+Route::get('/migrate', $migrateHandler);
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [AttendanceController::class, 'home'])->name('dashboard');
