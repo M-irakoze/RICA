@@ -42,7 +42,7 @@ it('shows the latest uploaded file on the dashboard even when no rows are import
     $uploadedFile = session('uploaded_file');
 
     $this->assertNotNull($uploadedFile);
-    $this->get(route('dashboard'))
+    $this->get(route('attendance.daily'))
         ->assertOk()
         ->assertSee($uploadedFile);
 });

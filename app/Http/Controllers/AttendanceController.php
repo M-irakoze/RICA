@@ -18,7 +18,6 @@ class AttendanceController extends Controller
 {
     public function index(Request $request)
     {
-        // Determine which date's report to show (default: today). Accepts a `date` query param.
         $dateParam = $request->query('date');
         if ($dateParam === 'yesterday') {
             $reportDate = Carbon::yesterday();
@@ -97,19 +96,7 @@ class AttendanceController extends Controller
 
     public function home(Request $request)
     {
-        $dateParam = $request->query('date');
-        if ($dateParam === 'yesterday') {
-            $reportDate = Carbon::yesterday();
-        } elseif ($dateParam) {
-            try {
-                $reportDate = Carbon::parse($dateParam)->startOfDay();
-            } catch (\Exception $e) {
-                $reportDate = Carbon::today();
-            }
-        } else {
-            $latestAttendanceDate = Attendance::max('attendance_date');
-            $reportDate = $latestAttendanceDate ? Carbon::parse($latestAttendanceDate)->startOfDay() : Carbon::today();
-        }
+        $reportDate = $this->resolveReportDate($request);
 
         $dailyQuery = Attendance::whereDate('attendance_date', $reportDate->toDateString());
         $total = $dailyQuery->count();
@@ -118,13 +105,14 @@ class AttendanceController extends Controller
         $late = (clone $dailyQuery)->where('status', 'late')->count();
         $attendanceRate = $total > 0 ? round(($present / $total) * 100, 1) : 0;
 
+        $startOfMonth = $reportDate->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $reportDate->copy()->endOfMonth()->toDateString();
+
         $periodSummaryLabels = ['Daily', 'Weekly', 'Monthly', 'Quarterly'];
         $periodSummaryData = [
             $total,
             Attendance::whereBetween('attendance_date', [$reportDate->copy()->startOfWeek(), $reportDate->copy()->endOfWeek()])->count(),
-            Attendance::whereYear('attendance_date', $reportDate->year)
-                ->whereMonth('attendance_date', $reportDate->month)
-                ->count(),
+            Attendance::whereBetween('attendance_date', [$startOfMonth, $endOfMonth])->count(),
             Attendance::whereBetween('attendance_date', [$reportDate->copy()->startOfQuarter(), $reportDate->copy()->endOfQuarter()])->count(),
         ];
 
@@ -168,19 +156,7 @@ class AttendanceController extends Controller
 
     public function departments(Request $request)
     {
-        // Determine which date's report to show (default: today). Accepts a `date` query param.
-        $dateParam = $request->query('date');
-        if ($dateParam === 'yesterday') {
-            $reportDate = Carbon::yesterday();
-        } elseif ($dateParam) {
-            try {
-                $reportDate = Carbon::parse($dateParam)->startOfDay();
-            } catch (\Exception $e) {
-                $reportDate = Carbon::today();
-            }
-        } else {
-            $reportDate = Carbon::today();
-        }
+        $reportDate = $this->resolveReportDate($request);
 
         // Load attendances for the selected report date only by attendance_date.
         $attendances = Attendance::whereDate('attendance_date', $reportDate->toDateString())->get();
@@ -234,18 +210,7 @@ class AttendanceController extends Controller
 
     public function workers(Request $request)
     {
-        $dateParam = $request->query('date');
-        if ($dateParam === 'yesterday') {
-            $reportDate = Carbon::yesterday();
-        } elseif ($dateParam) {
-            try {
-                $reportDate = Carbon::parse($dateParam)->startOfDay();
-            } catch (\Exception $e) {
-                $reportDate = Carbon::today();
-            }
-        } else {
-            $reportDate = Carbon::today();
-        }
+        $reportDate = $this->resolveReportDate($request);
 
         $scope = $request->query('scope', 'daily');
         $period = $request->query('period', $scope);
@@ -356,18 +321,7 @@ class AttendanceController extends Controller
 
     public function weekly(Request $request)
     {
-        $dateParam = $request->query('date');
-        if ($dateParam === 'yesterday') {
-            $reportDate = Carbon::yesterday();
-        } elseif ($dateParam) {
-            try {
-                $reportDate = Carbon::parse($dateParam)->startOfDay();
-            } catch (\Exception $e) {
-                $reportDate = Carbon::today();
-            }
-        } else {
-            $reportDate = Carbon::today();
-        }
+        $reportDate = $this->resolveReportDate($request);
 
         $startOfWeek = $reportDate->copy()->startOfWeek();
         $endOfWeek = $reportDate->copy()->endOfWeek();
@@ -478,18 +432,7 @@ class AttendanceController extends Controller
 
     public function weeklyDepartments(Request $request)
     {
-        $dateParam = $request->query('date');
-        if ($dateParam === 'yesterday') {
-            $reportDate = Carbon::yesterday();
-        } elseif ($dateParam) {
-            try {
-                $reportDate = Carbon::parse($dateParam)->startOfDay();
-            } catch (\Exception $e) {
-                $reportDate = Carbon::today();
-            }
-        } else {
-            $reportDate = Carbon::today();
-        }
+        $reportDate = $this->resolveReportDate($request);
 
         $startOfWeek = $reportDate->copy()->startOfWeek();
         $endOfWeek = $reportDate->copy()->endOfWeek();
@@ -565,18 +508,7 @@ class AttendanceController extends Controller
 
     public function monthly(Request $request)
     {
-        $dateParam = $request->query('date');
-        if ($dateParam === 'yesterday') {
-            $reportDate = Carbon::yesterday();
-        } elseif ($dateParam) {
-            try {
-                $reportDate = Carbon::parse($dateParam)->startOfDay();
-            } catch (\Exception $e) {
-                $reportDate = Carbon::today();
-            }
-        } else {
-            $reportDate = Carbon::today();
-        }
+        $reportDate = $this->resolveReportDate($request);
 
         $startOfMonth = $reportDate->copy()->startOfMonth();
         $endOfMonth = $reportDate->copy()->endOfMonth();
@@ -649,30 +581,30 @@ class AttendanceController extends Controller
             })
             ->sortKeys();
 
+        // 4 weekly buckets for the month (days 1-7, 8-14, 15-21, 22-end)
         $weeklyBuckets = [
-            ['start' => 1, 'end' => 7],
-            ['start' => 8, 'end' => 14],
-            ['start' => 15, 'end' => 21],
-            ['start' => 22, 'end' => $endOfMonth->day],
+            1 => ['label' => 'Week 1', 'start' => 1, 'end' => 7],
+            2 => ['label' => 'Week 2', 'start' => 8, 'end' => 14],
+            3 => ['label' => 'Week 3', 'start' => 15, 'end' => 21],
+            4 => ['label' => 'Week 4', 'start' => 22, 'end' => $endOfMonth->day],
         ];
 
         $monthlyLabels = [];
         $monthlyData = [];
         $weeklyBucketStartDates = [];
 
-        foreach ($weeklyBuckets as $index => $bucket) {
-            $bucketStart = $bucket['start'];
-            $bucketEnd = $bucket['end'];
-            $bucketRows = $dailySummaries->filter(function ($summary) use ($bucketStart, $bucketEnd) {
+        foreach ($weeklyBuckets as $weekNum => $bucket) {
+            $bucketRows = $dailySummaries->filter(function ($summary) use ($bucket) {
                 $day = Carbon::parse($summary['date'])->day;
-                return $day >= $bucketStart && $day <= $bucketEnd;
+                return $day >= $bucket['start'] && $day <= $bucket['end'];
             });
 
             $bucketTotal = $bucketRows->sum(fn ($summary) => $summary['total']);
             $bucketPresent = $bucketRows->sum(fn ($summary) => $summary['present']);
-            $monthlyLabels[] = 'Week ' . ($index + 1);
+
+            $monthlyLabels[] = $bucket['label'];
             $monthlyData[] = $bucketTotal > 0 ? round(($bucketPresent / $bucketTotal) * 100, 1) : 0;
-            $weeklyBucketStartDates[] = $startOfMonth->copy()->addDays($bucketStart - 1)->toDateString();
+            $weeklyBucketStartDates[] = $reportDate->copy()->day($bucket['start'])->toDateString();
         }
 
         return View::make('attendance.monthly', compact(
@@ -693,18 +625,7 @@ class AttendanceController extends Controller
 
     public function monthlyDepartments(Request $request)
     {
-        $dateParam = $request->query('date');
-        if ($dateParam === 'yesterday') {
-            $reportDate = Carbon::yesterday();
-        } elseif ($dateParam) {
-            try {
-                $reportDate = Carbon::parse($dateParam)->startOfDay();
-            } catch (\Exception $e) {
-                $reportDate = Carbon::today();
-            }
-        } else {
-            $reportDate = Carbon::today();
-        }
+        $reportDate = $this->resolveReportDate($request);
 
         $startOfMonth = $reportDate->copy()->startOfMonth();
         $endOfMonth = $reportDate->copy()->endOfMonth();
@@ -777,18 +698,7 @@ class AttendanceController extends Controller
 
     public function quarterly(Request $request)
     {
-        $dateParam = $request->query('date');
-        if ($dateParam === 'yesterday') {
-            $reportDate = Carbon::yesterday();
-        } elseif ($dateParam) {
-            try {
-                $reportDate = Carbon::parse($dateParam)->startOfDay();
-            } catch (\Exception $e) {
-                $reportDate = Carbon::today();
-            }
-        } else {
-            $reportDate = Carbon::today();
-        }
+        $reportDate = $this->resolveReportDate($request);
 
         $startOfQuarter = $reportDate->copy()->startOfQuarter();
         $endOfQuarter = $reportDate->copy()->endOfQuarter();
@@ -901,18 +811,7 @@ class AttendanceController extends Controller
 
     public function quarterlyDepartments(Request $request)
     {
-        $dateParam = $request->query('date');
-        if ($dateParam === 'yesterday') {
-            $reportDate = Carbon::yesterday();
-        } elseif ($dateParam) {
-            try {
-                $reportDate = Carbon::parse($dateParam)->startOfDay();
-            } catch (\Exception $e) {
-                $reportDate = Carbon::today();
-            }
-        } else {
-            $reportDate = Carbon::today();
-        }
+        $reportDate = $this->resolveReportDate($request);
 
         $startOfQuarter = $reportDate->copy()->startOfQuarter();
         $endOfQuarter = $reportDate->copy()->endOfQuarter();
@@ -981,6 +880,23 @@ class AttendanceController extends Controller
         }
 
         return View::make('attendance.quarterly-departments', compact('grouped', 'summaries', 'selectedDept', 'selectedRows', 'selectedSummary', 'deptDailySummaries'))->with('reportDate', $reportDate->toDateString());
+    }
+
+    private function resolveReportDate(Request $request): Carbon
+    {
+        $dateParam = $request->query('date');
+        if ($dateParam === 'yesterday') {
+            return Carbon::yesterday();
+        } elseif ($dateParam) {
+            try {
+                return Carbon::parse($dateParam)->startOfDay();
+            } catch (\Exception $e) {
+                return Carbon::today();
+            }
+        }
+
+        $latestDate = Attendance::max('attendance_date');
+        return $latestDate ? Carbon::parse($latestDate)->startOfDay() : Carbon::today();
     }
 
     private function normalizeAttendanceCollection($attendances)
@@ -1054,7 +970,7 @@ class AttendanceController extends Controller
             $redirectParams['date'] = Carbon::parse($firstDate)->toDateString();
         }
 
-        return Redirect::route('dashboard', $redirectParams)
+        return Redirect::route('attendance.daily', $redirectParams)
             ->with('success', "Imported {$import->imported} attendance records.");
     }
 
@@ -1165,9 +1081,9 @@ class AttendanceController extends Controller
         }
 
         if ($fileDeleted || $recordsDeleted > 0) {
-            return Redirect::route('dashboard', $redirectParams)->with('success', "Deleted uploaded file and its associated records: {$filename}");
+            return Redirect::route('attendance.daily', $redirectParams)->with('success', "Deleted uploaded file and its associated records: {$filename}");
         }
 
-        return Redirect::route('dashboard', $redirectParams)->with('success', "No uploaded file or attendance records were found for {$filename}.");
+        return Redirect::route('attendance.daily', $redirectParams)->with('success', "No uploaded file or attendance records were found for {$filename}.");
     }
 }

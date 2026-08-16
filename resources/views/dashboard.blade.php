@@ -10,21 +10,21 @@
             <div class="mb-6">
                 <div class="rounded-2xl bg-slate-100 p-4 shadow-sm">
                     <nav class="flex flex-wrap items-center justify-between gap-4">
-                        @php $dailyActive = request()->routeIs('dashboard') || request()->routeIs('attendance.departments'); @endphp
-                        <a href="{{ route('dashboard', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-indigo-700 bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 {{ $dailyActive ? 'border-4 border-black shadow-xl relative z-10 -translate-y-1' : '' }}" style="background-color:#4f46e5;color:#ffffff;border-color:#4338ca;">Daily report</a>
+                        @php $dailyActive = request()->routeIs('attendance.daily') || request()->routeIs('daily') || request()->routeIs('dashboard') || request()->routeIs('attendance.departments'); @endphp
+                        <a href="{{ route('attendance.daily') }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-indigo-700 bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 {{ $dailyActive ? 'border-4 border-black shadow-xl relative z-10 -translate-y-1' : '' }}" style="background-color:#4f46e5;color:#ffffff;border-color:#4338ca;">Daily report</a>
                         <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-slate-700 bg-slate-700 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-slate-800 inline-flex items-center justify-center {{ request()->routeIs('attendance.weekly') ? 'border-4 border-black shadow-xl relative z-10 -translate-y-1' : '' }}" style="background-color:#334155;color:#ffffff;border-color:#334155;">Weekly report</a>
                         <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-emerald-600 bg-emerald-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-emerald-700 inline-flex items-center justify-center" style="background-color:#10b981;color:#ffffff;border-color:#10b981;">Monthly report</a>
                         <a href="{{ route('attendance.quarterly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-amber-600 bg-amber-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-amber-700 inline-flex items-center justify-center" style="background-color:#f59e0b;color:#ffffff;border-color:#f59e0b;">Quartely report</a>
                     </nav>
                     <div class="mt-4 flex flex-wrap gap-3" id="reportTabs">
-                        <a href="{{ route('dashboard') }}{{ request()->query('date') ? '?date='.e(request()->query('date')) : '' }}" id="overallTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs('dashboard')) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Overall</a>
+                        <a href="{{ route('attendance.daily') }}" id="overallTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs('attendance.daily') || request()->routeIs('daily') || request()->routeIs('dashboard')) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Overall</a>
                         <a href="{{ route('attendance.departments') }}{{ request()->query('date') ? '?date='.e(request()->query('date')) : '' }}" id="departmentTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs('attendance.departments')) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Departments</a>
                         <a href="{{ route('attendance.workers', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString()), 'scope' => 'daily']) }}" id="workersTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs('attendance.workers') && (request()->query('scope', 'daily') === 'daily')) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Workers</a>
                     </div>
                 </div>
             </div>
             <div class="mb-4 flex items-center justify-between gap-4">
-                <form id="reportDateForm" method="GET" action="{{ route('dashboard') }}" class="flex items-center gap-2">
+                <form id="reportDateForm" method="GET" action="{{ route('attendance.daily') }}" class="flex items-center gap-2">
                     <button type="button" id="prevDay" title="Previous day" class="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">‹</button>
                     <input id="reportDateInput" name="date" type="date" value="{{ $reportDate ?? now()->toDateString() }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm" />
                     <button type="button" id="nextDay" title="Next day" class="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">›</button>
@@ -34,39 +34,52 @@
             </div>
 
             <script>
-                document.addEventListener('DOMContentLoaded', function () {
+                function initDashboardDateForm() {
                     const form = document.getElementById('reportDateForm');
                     const input = document.getElementById('reportDateInput');
                     const prev = document.getElementById('prevDay');
                     const next = document.getElementById('nextDay');
                     const label = document.getElementById('reportDateLabel');
 
+                    if (!form || !input || form.dataset.initialized === 'true') return;
+                    form.dataset.initialized = 'true';
+
                     function formatDateForInput(d) {
                         return d.toISOString().slice(0, 10);
                     }
 
-                    prev.addEventListener('click', function () {
-                        const d = new Date(input.value || new Date().toISOString());
-                        d.setDate(d.getDate() - 1);
-                        input.value = formatDateForInput(d);
-                        label.textContent = input.value;
-                        form.submit();
-                    });
+                    if (prev) {
+                        prev.addEventListener('click', function () {
+                            const d = new Date(input.value || new Date().toISOString());
+                            d.setDate(d.getDate() - 1);
+                            input.value = formatDateForInput(d);
+                            if (label) label.textContent = input.value;
+                            form.submit();
+                        });
+                    }
 
-                    next.addEventListener('click', function () {
-                        const d = new Date(input.value || new Date().toISOString());
-                        d.setDate(d.getDate() + 1);
-                        input.value = formatDateForInput(d);
-                        label.textContent = input.value;
-                        form.submit();
-                    });
+                    if (next) {
+                        next.addEventListener('click', function () {
+                            const d = new Date(input.value || new Date().toISOString());
+                            d.setDate(d.getDate() + 1);
+                            input.value = formatDateForInput(d);
+                            if (label) label.textContent = input.value;
+                            form.submit();
+                        });
+                    }
 
                     input.addEventListener('change', function () {
-                        label.textContent = input.value;
-                        // auto-submit when user picks a date
+                        if (label) label.textContent = input.value;
                         form.submit();
                     });
-                });
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initDashboardDateForm);
+                } else {
+                    initDashboardDateForm();
+                }
+                document.addEventListener('turbo:load', initDashboardDateForm);
             </script>
             @if(session('success'))
                 <div class="mb-6 rounded-lg bg-green-50 border border-green-200 p-4 text-green-800">
@@ -147,26 +160,26 @@
 
             <div class="mb-6 overflow-x-auto">
                 <div class="flex min-w-full justify-between gap-4">
-                    <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate, 'status' => 'all']) }}" class="min-w-[14rem] rounded-2xl bg-indigo-50 p-5 text-center shadow-sm hover:bg-indigo-100 {{ ($selectedStatus ?? '') === 'all' ? 'ring-2 ring-indigo-500' : '' }}">
+                    <div class="min-w-[14rem] rounded-2xl bg-indigo-50 p-5 text-center shadow-sm">
                         <p class="text-sm font-medium text-gray-600">Total records</p>
                         <p class="mt-2 text-2xl font-semibold text-gray-900">{{ $total }}</p>
-                    </a>
-                    <div class="min-w-[14rem] rounded-2xl bg-slate-50 p-5 text-center shadow-sm hover:bg-slate-100">
+                    </div>
+                    <div class="min-w-[14rem] rounded-2xl bg-slate-50 p-5 text-center shadow-sm">
                         <p class="text-sm font-medium text-gray-600">Attendance rate</p>
                         <p class="mt-2 text-2xl font-semibold text-blue-600">{{ $attendanceRate }}%</p>
                     </div>
-                    <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate, 'status' => 'present']) }}" class="min-w-[14rem] rounded-2xl bg-emerald-50 p-5 text-center shadow-sm hover:bg-emerald-100 {{ ($selectedStatus ?? '') === 'present' ? 'ring-2 ring-emerald-500' : '' }}">
+                    <div class="min-w-[14rem] rounded-2xl bg-emerald-50 p-5 text-center shadow-sm">
                         <p class="text-sm font-medium text-gray-600">Present</p>
                         <p class="mt-2 text-2xl font-semibold text-green-600">{{ $present }}</p>
-                    </a>
-                    <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate, 'status' => 'absent']) }}" class="min-w-[14rem] rounded-2xl bg-rose-50 p-5 text-center shadow-sm hover:bg-rose-100 {{ ($selectedStatus ?? '') === 'absent' ? 'ring-2 ring-red-500' : '' }}">
+                    </div>
+                    <div class="min-w-[14rem] rounded-2xl bg-rose-50 p-5 text-center shadow-sm">
                         <p class="text-sm font-medium text-gray-600">Absent</p>
                         <p class="mt-2 text-2xl font-semibold text-red-600">{{ $absent }}</p>
-                    </a>
-                    <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate, 'status' => 'late']) }}" class="min-w-[14rem] rounded-2xl bg-amber-50 p-5 text-center shadow-sm hover:bg-amber-100 {{ ($selectedStatus ?? '') === 'late' ? 'ring-2 ring-amber-500' : '' }}">
+                    </div>
+                    <div class="min-w-[14rem] rounded-2xl bg-amber-50 p-5 text-center shadow-sm">
                         <p class="text-sm font-medium text-gray-600">Late</p>
                         <p class="mt-2 text-2xl font-semibold text-yellow-600">{{ $late }}</p>
-                    </a>
+                    </div>
                 </div>
             </div>
 
@@ -190,31 +203,31 @@
                         </div>
 
                         <div class="grid gap-4 w-full sm:w-auto">
-                            <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate, 'status' => 'present']) }}" class="rounded-2xl bg-emerald-50 p-4 text-center {{ ($selectedStatus ?? '') === 'present' ? 'ring-2 ring-emerald-500' : '' }}">
+                            <div class="rounded-2xl bg-emerald-50 p-4 text-center">
                                 <p class="text-xs uppercase tracking-wide text-emerald-700">Present</p>
                                 <p class="mt-2 text-2xl font-semibold text-emerald-800">{{ $present }}</p>
                                 <p class="text-sm text-slate-500">{{ $presentPct }}%</p>
-                            </a>
-                            <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate, 'status' => 'absent']) }}" class="rounded-2xl bg-rose-50 p-4 text-center {{ ($selectedStatus ?? '') === 'absent' ? 'ring-2 ring-red-500' : '' }}">
+                            </div>
+                            <div class="rounded-2xl bg-rose-50 p-4 text-center">
                                 <p class="text-xs uppercase tracking-wide text-rose-700">Absent</p>
                                 <p class="mt-2 text-2xl font-semibold text-rose-800">{{ $absent }}</p>
                                 <p class="text-sm text-slate-500">{{ $absentPct }}%</p>
-                            </a>
-                            <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate, 'status' => 'late']) }}" class="rounded-2xl bg-amber-50 p-4 text-center {{ ($selectedStatus ?? '') === 'late' ? 'ring-2 ring-amber-500' : '' }}">
+                            </div>
+                            <div class="rounded-2xl bg-amber-50 p-4 text-center">
                                 <p class="text-xs uppercase tracking-wide text-amber-700">Late</p>
                                 <p class="mt-2 text-2xl font-semibold text-amber-800">{{ $late }}</p>
                                 <p class="text-sm text-slate-500">{{ $latePct }}%</p>
-                            </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @if($selectedStatus !== '')
-                <div class="mb-6 rounded-lg bg-white p-4 shadow-sm">
-                    <div class="mb-4 flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-slate-900">{{ $selectedStatus === 'all' ? 'All records' : ucfirst($selectedStatus) . ' records' }}</h3>
-                        <span class="text-sm text-slate-500">{{ count($statusRows) }} record(s)</span>
+            @if($statusRows->isNotEmpty())
+                <div class="mb-6 rounded-2xl bg-white p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-base font-semibold text-gray-800">Attendance details</h4>
+                        <span class="text-sm text-gray-500">{{ $statusRows->count() }} records</span>
                     </div>
 
                     <div class="overflow-x-auto">
@@ -238,6 +251,8 @@
                                     <th class="px-3 py-2 text-left font-medium">Early minutes</th>
                                     <th class="px-3 py-2 text-left font-medium">Absent minutes</th>
                                     <th class="px-3 py-2 text-left font-medium">Leave minutes</th>
+                                    <th class="px-3 py-2 text-left font-medium">Source</th>
+                                    <th class="px-3 py-2 text-left font-medium">Records</th>
                                     <th class="px-3 py-2 text-left font-medium">Status</th>
                                 </tr>
                             </thead>
@@ -261,6 +276,8 @@
                                         <td class="px-3 py-2">{{ $row->early_minutes }}</td>
                                         <td class="px-3 py-2">{{ $row->absent_minutes }}</td>
                                         <td class="px-3 py-2">{{ $row->leave_minutes }}</td>
+                                        <td class="px-3 py-2">{{ $row->source }}</td>
+                                        <td class="px-3 py-2">{{ $row->records }}</td>
                                         <td class="px-3 py-2">
                                             @php
                                                 $rowStatusClass = match (strtolower($row->status ?? '')) {
@@ -281,9 +298,18 @@
             @endif
 
             <script>
-                document.addEventListener('DOMContentLoaded', function () {
+                function initDashboardStatusChart() {
+                    if (typeof Chart === 'undefined') {
+                        setTimeout(initDashboardStatusChart, 50);
+                        return;
+                    }
+
                     const statusCtx = document.getElementById('attendanceStatusChart');
                     if (statusCtx) {
+                        if (Chart.getChart(statusCtx)) {
+                            Chart.getChart(statusCtx).destroy();
+                        }
+
                         new Chart(statusCtx, {
                             type: 'pie',
                             data: {
@@ -322,8 +348,14 @@
                             }
                         });
                     }
+                }
 
-                });
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initDashboardStatusChart);
+                } else {
+                    initDashboardStatusChart();
+                }
+                document.addEventListener('turbo:load', initDashboardStatusChart);
             </script>
 
            

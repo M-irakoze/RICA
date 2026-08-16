@@ -86,9 +86,9 @@
             <div class="mb-6">
                 <div class="rounded-2xl bg-slate-100 p-4 shadow-sm print-surface">
                     <nav class="flex flex-wrap items-center justify-between gap-4 no-print">
-                        <a href="{{ route('dashboard') }}{{ request()->query('date') ? '?date='.e(request()->query('date')) : '' }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-teal-500 text-white shadow-sm hover:bg-teal-600" style="background-color:#14b8a6;color:#ffffff;border-color:#14b8a6;">Daily report</a>
-                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300 opacity-80">Weekly report</a>
-                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-violet-600 bg-violet-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-violet-700 inline-flex items-center justify-center opacity-50 filter blur-sm" style="background-color:#7c3aed;color:#ffffff;border-color:#7c3aed;">Monthly report</a>
+                        <a href="{{ route('attendance.daily') }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-teal-500 text-white shadow-sm hover:bg-teal-600" style="background-color:#14b8a6;color:#ffffff;border-color:#14b8a6;">Daily report</a>
+                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300">Weekly report</a>
+                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-emerald-600 bg-emerald-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-emerald-700 inline-flex items-center justify-center">Monthly report</a>
                         <a href="{{ route('attendance.quarterly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-amber-600 bg-amber-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-amber-700 inline-flex items-center justify-center" style="background-color:#f59e0b;color:#ffffff;border-color:#f59e0b;">Quartely report</a>
                     </nav>
                     @php
@@ -264,12 +264,21 @@
                     </div>
 
                     <script>
-                        document.addEventListener('DOMContentLoaded', function () {
+                        function initQuarterlyDeptModalCharts() {
+                            if (typeof Chart === 'undefined') {
+                                setTimeout(initQuarterlyDeptModalCharts, 50);
+                                return;
+                            }
+
                             const pieCtx = document.getElementById('departmentStatusChart');
                             if (!pieCtx) return;
 
-                            const pieChart = new Chart(pieCtx, {
-                                type: 'doughnut',
+                            if (Chart.getChart(pieCtx)) {
+                                Chart.getChart(pieCtx).destroy();
+                            }
+
+                            new Chart(pieCtx, {
+                                type: 'pie',
                                 data: {
                                     labels: ['Present', 'Absent', 'Late'],
                                     datasets: [{
@@ -278,20 +287,27 @@
                                             @json($selectedSummary['absent'] ?? 0),
                                             @json($selectedSummary['late'] ?? 0)
                                         ],
-                                        backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
-                                        borderColor: '#ffffff',
+                                        backgroundColor: ['#16a34a', '#ef4444', '#f59e0b'],
+                                        borderColor: ['#ffffff', '#ffffff', '#ffffff'],
                                         borderWidth: 2,
                                     }],
                                 },
                                 options: {
                                     responsive: true,
-                                    maintainAspectRatio: true,
+                                    maintainAspectRatio: false,
                                     plugins: {
-                                        legend: { position: 'bottom' },
+                                        legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle' } },
                                     }
                                 }
                             });
-                        });
+                        }
+
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', initQuarterlyDeptModalCharts);
+                        } else {
+                            initQuarterlyDeptModalCharts();
+                        }
+                        document.addEventListener('turbo:load', initQuarterlyDeptModalCharts);
                     </script>
                 @endif
             @endif

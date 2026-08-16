@@ -6,15 +6,36 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     if (auth()->check()) {
-        return redirect()->route('home');
+        return redirect()->route('dashboard');
     }
 
     return redirect()->route('login');
 });
 
+Route::get('/artisan/migrate', function () {
+    $secret = request('key');
+    if ($secret !== config('app.key') && $secret !== env('APP_KEY')) {
+        return response()->json(['error' => 'Unauthorized. Provide correct APP_KEY as ?key=... parameter.'], 403);
+    }
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        return response()->json([
+            'status' => 'success',
+            'output' => \Illuminate\Support\Facades\Artisan::output()
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [AttendanceController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [AttendanceController::class, 'home'])->name('dashboard');
     Route::get('/home', [AttendanceController::class, 'home'])->name('home');
+    Route::get('/attendance/daily', [AttendanceController::class, 'index'])->name('attendance.daily');
+    Route::get('/daily', [AttendanceController::class, 'index'])->name('daily');
     Route::post('/attendance/import', [AttendanceController::class, 'import'])->name('attendance.import');
     Route::get('/attendance/view/{filename}', [AttendanceController::class, 'viewUploadedFile'])
         ->where('filename', '[^/]+')

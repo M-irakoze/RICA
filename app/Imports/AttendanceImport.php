@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Attendance;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Shuchkin\SimpleXLS as SimpleXLSParser;
 use Shuchkin\SimpleXLSX as SimpleXLSXParser;
@@ -30,68 +31,86 @@ class AttendanceImport
             default => [],
         };
 
-        foreach ($rows as $row) {
-            if ($this->isEmptyRow($row)) {
-                continue;
+        $now = now();
+        $batch = [];
+        $batchSize = 500;
+
+        DB::transaction(function () use ($rows, &$batch, $batchSize, $now) {
+            foreach ($rows as $row) {
+                if ($this->isEmptyRow($row)) {
+                    continue;
+                }
+
+                $employeeId = $this->findValue($row, ['person_id', 'employee_id', 'employee id', 'id', 'staff_id', 'staff id', 'staff no', 'employee no']);
+                $name = $this->findValue($row, ['name', 'full_name', 'full name', 'employee_name', 'employee name']);
+                $department = $this->findValue($row, ['department', 'dept']);
+                $position = $this->findValue($row, ['position', 'job_title', 'role']);
+                $gender = $this->findValue($row, ['gender', 'sex']);
+                $dateValue = $this->findValue($row, ['date', 'attendance_date', 'attendance date', 'day']);
+                $week = $this->findValue($row, ['week']);
+                $timetable = $this->findValue($row, ['timetable', 'time table']);
+                $checkInValue = $this->findValue($row, ['check_in', 'check-in', 'check in']);
+                $checkOutValue = $this->findValue($row, ['check_out', 'check-out', 'check out']);
+                $workMinutes = $this->findValue($row, ['work', 'work_minutes', 'work minutes']);
+                $otMinutes = $this->findValue($row, ['ot', 'overtime', 'ot_minutes', 'ot minutes']);
+                $attendedMinutes = $this->findValue($row, ['attended', 'attended_minutes', 'attended minutes']);
+                $lateMinutes = $this->findValue($row, ['late', 'late_minutes', 'late minutes']);
+                $earlyMinutes = $this->findValue($row, ['early', 'early_minutes', 'early minutes']);
+                $absentMinutes = $this->findValue($row, ['absent', 'absent_minutes', 'absent minutes']);
+                $leaveMinutes = $this->findValue($row, ['leave', 'leave_minutes', 'leave minutes']);
+                $statusValue = $this->findValue($row, ['status', 'attendance_status', 'attendance status', 'remark', 'remarks']);
+                $sourceValue = $this->findValue($row, ['source', 'machine', 'device', 'terminal']);
+                $records = $this->findValue($row, ['records', 'record']);
+
+                $attendanceDate = $this->parseDate($dateValue);
+                $attendanceTime = $this->parseTime($checkInValue ?? $checkOutValue ?? $dateValue);
+                $checkIn = $this->parseTime($checkInValue);
+                $checkOut = $this->parseTime($checkOutValue);
+
+                if (! $attendanceDate) {
+                    continue;
+                }
+
+                $batch[] = [
+                    'employee_id' => $employeeId ?: 'unknown',
+                    'name' => $name ?: 'Unknown',
+                    'department' => $department,
+                    'position' => $position,
+                    'gender' => $gender,
+                    'attendance_date' => $attendanceDate,
+                    'week' => $week,
+                    'timetable' => $timetable,
+                    'check_in' => $checkIn,
+                    'check_out' => $checkOut,
+                    'work_minutes' => $this->parseInteger($workMinutes),
+                    'ot_minutes' => $this->parseInteger($otMinutes),
+                    'attended_minutes' => $this->parseInteger($attendedMinutes),
+                    'late_minutes' => $this->parseInteger($lateMinutes),
+                    'early_minutes' => $this->parseInteger($earlyMinutes),
+                    'absent_minutes' => $this->parseInteger($absentMinutes),
+                    'leave_minutes' => $this->parseInteger($leaveMinutes),
+                    'attendance_time' => $attendanceTime,
+                    'status' => $this->normalizeStatus($statusValue, $checkInValue),
+                    'source' => $sourceValue,
+                    'records' => $records,
+                    'uploaded_file' => $this->uploadedFile,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                $this->imported++;
+
+                if (count($batch) >= $batchSize) {
+                    Attendance::insert($batch);
+                    $batch = [];
+                }
             }
 
-            $employeeId = $this->findValue($row, ['person_id', 'employee_id', 'employee id', 'id', 'staff_id', 'staff id', 'staff no', 'employee no']);
-            $name = $this->findValue($row, ['name', 'full_name', 'full name', 'employee_name', 'employee name']);
-            $department = $this->findValue($row, ['department', 'dept']);
-            $position = $this->findValue($row, ['position', 'job_title', 'role']);
-            $gender = $this->findValue($row, ['gender', 'sex']);
-            $dateValue = $this->findValue($row, ['date', 'attendance_date', 'attendance date', 'day']);
-            $week = $this->findValue($row, ['week']);
-            $timetable = $this->findValue($row, ['timetable', 'time table']);
-            $checkInValue = $this->findValue($row, ['check_in', 'check-in', 'check in']);
-            $checkOutValue = $this->findValue($row, ['check_out', 'check-out', 'check out']);
-            $workMinutes = $this->findValue($row, ['work', 'work_minutes', 'work minutes']);
-            $otMinutes = $this->findValue($row, ['ot', 'overtime', 'ot_minutes', 'ot minutes']);
-            $attendedMinutes = $this->findValue($row, ['attended', 'attended_minutes', 'attended minutes']);
-            $lateMinutes = $this->findValue($row, ['late', 'late_minutes', 'late minutes']);
-            $earlyMinutes = $this->findValue($row, ['early', 'early_minutes', 'early minutes']);
-            $absentMinutes = $this->findValue($row, ['absent', 'absent_minutes', 'absent minutes']);
-            $leaveMinutes = $this->findValue($row, ['leave', 'leave_minutes', 'leave minutes']);
-            $statusValue = $this->findValue($row, ['status', 'attendance_status', 'attendance status', 'remark', 'remarks']);
-            $sourceValue = $this->findValue($row, ['source', 'machine', 'device', 'terminal']);
-            $records = $this->findValue($row, ['records', 'record']);
-
-            $attendanceDate = $this->parseDate($dateValue);
-            $attendanceTime = $this->parseTime($checkInValue ?? $checkOutValue ?? $dateValue);
-            $checkIn = $this->parseTime($checkInValue);
-            $checkOut = $this->parseTime($checkOutValue);
-
-            if (! $attendanceDate) {
-                continue;
+            if (! empty($batch)) {
+                Attendance::insert($batch);
+                $batch = [];
             }
-
-            Attendance::create([
-                'employee_id' => $employeeId ?: 'unknown',
-                'name' => $name ?: 'Unknown',
-                'department' => $department,
-                'position' => $position,
-                'gender' => $gender,
-                'attendance_date' => $attendanceDate,
-                'week' => $week,
-                'timetable' => $timetable,
-                'check_in' => $checkIn,
-                'check_out' => $checkOut,
-                'work_minutes' => $this->parseInteger($workMinutes),
-                'ot_minutes' => $this->parseInteger($otMinutes),
-                'attended_minutes' => $this->parseInteger($attendedMinutes),
-                'late_minutes' => $this->parseInteger($lateMinutes),
-                'early_minutes' => $this->parseInteger($earlyMinutes),
-                'absent_minutes' => $this->parseInteger($absentMinutes),
-                'leave_minutes' => $this->parseInteger($leaveMinutes),
-                'attendance_time' => $attendanceTime,
-                'status' => $this->normalizeStatus($statusValue, $checkInValue),
-                'source' => $sourceValue,
-                'records' => $records,
-                'uploaded_file' => $this->uploadedFile,
-            ]);
-
-            $this->imported++;
-        }
+        });
     }
 
     protected function parseXlsx(UploadedFile $file): array

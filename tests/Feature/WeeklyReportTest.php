@@ -10,5 +10,5 @@ test('weekly report chart links clicked days to the daily report route', functio
     $response->assertStatus(200)
         ->assertSee('window.location.href =')
         ->assertSee('encodeURIComponent(selectedDate)')
-        ->assertSee(route('dashboard'));
+        ->assertSee(route('attendance.daily'));
 });

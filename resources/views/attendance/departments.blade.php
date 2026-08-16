@@ -95,12 +95,12 @@
             <div class="mb-6">
                 <div class="rounded-2xl bg-slate-100 p-4 shadow-sm print-surface">
                     <nav class="flex flex-wrap items-center justify-between gap-4 no-print">
-                        @php $dailyActive = request()->routeIs('dashboard') || request()->routeIs('attendance.departments'); @endphp
-                        <a href="{{ route('dashboard') }}{{ request()->query('date') ? '?date='.e(request()->query('date')) : '' }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $dailyActive ? 'border-4 border-black bg-indigo-600 text-white shadow-xl relative z-10 -translate-y-1 hover:bg-indigo-700' : 'border border-slate-300 bg-teal-500 text-white shadow-sm hover:bg-teal-600' }}" style="{{ $dailyActive ? 'background-color:#4f46e5;color:#ffffff;' : 'background-color:#14b8a6;color:#ffffff;border-color:#14b8a6;' }}">Daily report</a>
+                        @php $dailyActive = request()->routeIs('attendance.daily') || request()->routeIs('daily') || request()->routeIs('dashboard') || (request()->routeIs('attendance.departments') && !request()->routeIs('attendance.weekly.departments') && !request()->routeIs('attendance.monthly.departments')); @endphp
+                        <a href="{{ route('attendance.daily') }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $dailyActive ? 'border-4 border-black bg-indigo-600 text-white shadow-xl relative z-10 -translate-y-1 hover:bg-indigo-700' : 'border border-slate-300 bg-teal-500 text-white shadow-sm hover:bg-teal-600' }}" style="{{ $dailyActive ? 'background-color:#4f46e5;color:#ffffff;' : 'background-color:#14b8a6;color:#ffffff;border-color:#14b8a6;' }}">Daily report</a>
                         @php $isWeeklyActive = request()->routeIs('attendance.weekly') || request()->routeIs('attendance.weekly.departments'); @endphp
-                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $isWeeklyActive ? 'border-4 border-black bg-indigo-600 text-white shadow-xl relative z-10 -translate-y-1 hover:bg-indigo-700' : 'border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300 opacity-80' }}">Weekly report</a>
+                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $isWeeklyActive ? 'border-4 border-black bg-indigo-600 text-white shadow-xl relative z-10 -translate-y-1 hover:bg-indigo-700' : 'border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300' }}">Weekly report</a>
                         @php $isMonthlyActive = request()->routeIs('attendance.monthly') || request()->routeIs('attendance.monthly.departments'); @endphp
-                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-violet-600 bg-violet-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-violet-700 inline-flex items-center justify-center {{ $isMonthlyActive ? 'opacity-100 filter-none' : 'opacity-50 filter blur-sm' }}" style="background-color:#7c3aed;color:#ffffff;border-color:#7c3aed;">Monthly report</a>
+                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-emerald-600 bg-emerald-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-emerald-700 inline-flex items-center justify-center {{ $isMonthlyActive ? 'border-4 border-black shadow-xl relative z-10 -translate-y-1' : '' }}">Monthly report</a>
                         <a href="{{ route('attendance.quarterly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-amber-600 bg-amber-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-amber-700 inline-flex items-center justify-center" style="background-color:#f59e0b;color:#ffffff;border-color:#f59e0b;">Quartely report</a>
                     </nav>
                     @php
@@ -109,8 +109,8 @@
                         $baseDate = request()->query('date') ?? ($reportDate ?? now()->toDateString());
                     @endphp
                     <div class="mt-4 flex flex-wrap gap-3" id="reportTabs">
-                        <a href="{{ $isWeeklyDepartments ? route('attendance.weekly', ['date' => $baseDate]) : ($isMonthlyDepartments ? route('attendance.monthly', ['date' => $baseDate]) : route('dashboard', ['date' => $baseDate])) }}" id="overallTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(($isWeeklyDepartments && request()->routeIs('attendance.weekly')) || ($isMonthlyDepartments && request()->routeIs('attendance.monthly')) || (!$isWeeklyDepartments && !$isMonthlyDepartments && request()->routeIs('dashboard'))) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Overall</a>
-                        <a href="{{ $isWeeklyDepartments ? route('attendance.weekly.departments', ['date' => $baseDate]) : ($isMonthlyDepartments ? route('attendance.monthly.departments', ['date' => $baseDate]) : route('attendance.departments', ['date' => $baseDate])) }}" id="departmentTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(($isWeeklyDepartments && request()->routeIs('attendance.weekly.departments')) || ($isMonthlyDepartments && request()->routeIs('attendance.monthly.departments')) || (!$isWeeklyDepartments && !$isMonthlyDepartments && request()->routeIs('attendance.departments'))) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-slate-200 font-semibold text-slate-900 shadow-sm hover:bg-slate-300 @endif">Departments</a>
+                        <a href="{{ $isWeeklyDepartments ? route('attendance.weekly', ['date' => $baseDate]) : ($isMonthlyDepartments ? route('attendance.monthly', ['date' => $baseDate]) : route('attendance.daily', ['date' => $baseDate])) }}" id="overallTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(($isWeeklyDepartments && request()->routeIs('attendance.weekly')) || ($isMonthlyDepartments && request()->routeIs('attendance.monthly')) || (!$isWeeklyDepartments && !$isMonthlyDepartments && (request()->routeIs('attendance.daily') || request()->routeIs('daily') || request()->routeIs('dashboard')))) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Overall</a>
+                        <a href="{{ $isWeeklyDepartments ? route('attendance.weekly.departments', ['date' => $baseDate]) : ($isMonthlyDepartments ? route('attendance.monthly.departments', ['date' => $baseDate]) : route('attendance.departments', ['date' => $baseDate])) }}" id="departmentTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5">Departments</a>
                         <a href="{{ route('attendance.workers', ['date' => $baseDate, 'scope' => $isWeeklyDepartments ? 'weekly' : ($isMonthlyDepartments ? 'monthly' : 'daily')]) }}" id="workersTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs('attendance.workers')) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-slate-200 font-semibold text-slate-900 shadow-sm hover:bg-slate-300 @endif">Workers</a>
                     </div>
 
@@ -296,9 +296,18 @@
                     </div>
 
                     <script>
-                        document.addEventListener('DOMContentLoaded', function () {
+                        function initDeptModalCharts() {
+                            if (typeof Chart === 'undefined') {
+                                setTimeout(initDeptModalCharts, 50);
+                                return;
+                            }
+
                             const pieCtx = document.getElementById('departmentStatusChart');
                             if (pieCtx) {
+                                if (Chart.getChart(pieCtx)) {
+                                    Chart.getChart(pieCtx).destroy();
+                                }
+
                                 const present = {{ $selectedSummary['present'] ?? 0 }};
                                 const absent = {{ $selectedSummary['absent'] ?? 0 }};
                                 const late = {{ $selectedSummary['late'] ?? 0 }};
@@ -338,6 +347,10 @@
                             @if(request()->routeIs('attendance.weekly.departments'))
                             const barCanvas = document.getElementById('deptDailyChart');
                             if (barCanvas) {
+                                if (Chart.getChart(barCanvas)) {
+                                    Chart.getChart(barCanvas).destroy();
+                                }
+
                                 let labels = [];
                                 let data = [];
                                 try {
@@ -365,6 +378,7 @@
                                             ],
                                             borderRadius: 8,
                                             maxBarThickness: 36,
+                                            minBarLength: 6,
                                         }],
                                     },
                                     options: {
@@ -386,7 +400,14 @@
                                 });
                             }
                             @endif
-                        });
+                        }
+
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', initDeptModalCharts);
+                        } else {
+                            initDeptModalCharts();
+                        }
+                        document.addEventListener('turbo:load', initDeptModalCharts);
                     </script>
                 @endif
             @endif

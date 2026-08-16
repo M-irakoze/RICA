@@ -32,7 +32,7 @@ it('shows only the selected attendance status rows on the daily dashboard', func
         'work_minutes' => 0,
     ]);
 
-    $response = $this->get('/dashboard?date=2026-08-01&status=absent');
+    $response = $this->get('/attendance/daily?date=2026-08-01&status=absent');
 
     $response->assertOk();
     $response->assertSee('Bob');
@@ -95,12 +95,12 @@ it('shows all total records when the total card is used on the daily dashboard',
         'uploaded_file' => 'attendance.xlsx',
     ]);
 
-    $response = $this->get('/dashboard?date=2026-08-01&status=all');
+    $response = $this->get('/attendance/daily?date=2026-08-01&status=all');
 
     $response->assertOk();
     $response->assertSee('Alice');
     $response->assertSee('Bob');
-    $response->assertSee('All records');
+    $response->assertSee('Total records');
     $response->assertSee('Check-in');
     $response->assertSee('Check-out');
     $response->assertSee('Work minutes');

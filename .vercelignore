@@ -1,0 +1,8 @@
+.git
+.github
+tests
+node_modules
+.env
+.phpunit.result.cache
+ Homstead.json
+ Homstead.yaml

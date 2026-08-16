@@ -11,9 +11,9 @@
                 <div class="rounded-2xl bg-slate-100 p-4 shadow-sm">
                     <nav class="flex flex-wrap items-center justify-between gap-4">
                         @php $weeklyActive = request()->routeIs('attendance.weekly'); @endphp
-                        <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $weeklyActive ? 'border border-slate-300 bg-slate-200 text-slate-900 shadow-sm' : 'border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300' }}">Daily report</a>
-                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $weeklyActive ? 'border-4 border-black bg-indigo-600 text-white shadow-xl relative z-10 -translate-y-1 hover:bg-indigo-700' : 'border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300 opacity-80' }}">Weekly report</a>
-                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-emerald-600 bg-emerald-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-emerald-700 inline-flex items-center justify-center {{ request()->routeIs('attendance.monthly') ? 'opacity-100 filter-none' : 'opacity-50 filter blur-sm' }}">Monthly report</a>
+                        <a href="{{ route('attendance.daily') }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300">Daily report</a>
+                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $weeklyActive ? 'border-4 border-black bg-indigo-600 text-white shadow-xl relative z-10 -translate-y-1 hover:bg-indigo-700' : 'border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300' }}">Weekly report</a>
+                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-emerald-600 bg-emerald-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-emerald-700 inline-flex items-center justify-center">Monthly report</a>
                         <a href="{{ route('attendance.quarterly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-amber-600 bg-amber-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-amber-700 inline-flex items-center justify-center">Quartely report</a>
                     </nav>
                     <div class="mt-4 flex flex-wrap gap-3" id="reportTabs">
@@ -30,8 +30,6 @@
                 </div>
             </div>
 
-            {{-- Departments moved to separate weekly departments page --}}
-
             <div class="grid gap-6 mb-6 xl:grid-cols-2">
                 <div class="rounded-lg bg-white p-6 shadow-sm order-last xl:order-first">
                     <h3 class="text-lg font-semibold mb-4">Weekly attendance rate by day</h3>
@@ -41,33 +39,39 @@
                         @else
                             <canvas id="weeklyReportChart" data-labels='@json($weeklyLabels)' data-data='@json($weeklyData)'></canvas>
                         @endif
-                        </div>
+                    </div>
                 </div>
 
                 <div class="rounded-lg bg-white p-6 shadow-sm order-first xl:order-last">
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div class="rounded-xl bg-slate-50 p-4">
-                            <div class="text-sm uppercase tracking-wide text-slate-500">Overall summary</div>
-                            <div class="mt-3 text-3xl font-semibold text-slate-900">{{ $selectedSummary['total'] }}</div>
-                            <div class="mt-2 text-sm text-slate-600">Total records for attended days only</div>
-                        </div>
-                        <div class="grid gap-4">
-                            <div class="rounded-xl bg-emerald-50 p-4">
-                                <div class="text-sm uppercase tracking-wide text-emerald-700">Present</div>
-                                <div class="mt-2 text-2xl font-semibold text-emerald-800">{{ $selectedSummary['present'] }}</div>
-                            </div>
-                            <div class="rounded-xl bg-red-50 p-4">
-                                <div class="text-sm uppercase tracking-wide text-red-700">Absent</div>
-                                <div class="mt-2 text-2xl font-semibold text-red-800">{{ $selectedSummary['absent'] }}</div>
-                            </div>
-                            <div class="rounded-xl bg-amber-50 p-4">
-                                <div class="text-sm uppercase tracking-wide text-amber-700">Late</div>
-                                <div class="mt-2 text-2xl font-semibold text-amber-800">{{ $selectedSummary['late'] }}</div>
-                            </div>
+                    <h3 class="text-lg font-semibold mb-4">Weekly summary</h3>
+                    <div class="grid gap-4 md:grid-cols-2 items-center">
+                        <div class="space-y-4">
                             <div class="rounded-xl bg-slate-50 p-4">
-                                <div class="text-sm uppercase tracking-wide text-slate-700">Attendance rate</div>
-                                <div class="mt-2 text-2xl font-semibold text-slate-900">{{ $selectedSummary['rate'] }}%</div>
+                                <div class="text-sm uppercase tracking-wide text-slate-500">Overall records</div>
+                                <div class="mt-2 text-3xl font-semibold text-slate-900">{{ $selectedSummary['total'] }}</div>
+                                <div class="mt-1 text-xs text-slate-500">Total records for attended days only</div>
                             </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="rounded-xl bg-emerald-50 p-3 text-center">
+                                    <div class="text-xs uppercase tracking-wide text-emerald-700">Present</div>
+                                    <div class="mt-1 text-xl font-semibold text-emerald-800">{{ $selectedSummary['present'] }}</div>
+                                </div>
+                                <div class="rounded-xl bg-red-50 p-3 text-center">
+                                    <div class="text-xs uppercase tracking-wide text-red-700">Absent</div>
+                                    <div class="mt-1 text-xl font-semibold text-red-800">{{ $selectedSummary['absent'] }}</div>
+                                </div>
+                                <div class="rounded-xl bg-amber-50 p-3 text-center">
+                                    <div class="text-xs uppercase tracking-wide text-amber-700">Late</div>
+                                    <div class="mt-1 text-xl font-semibold text-amber-800">{{ $selectedSummary['late'] }}</div>
+                                </div>
+                            </div>
+                            <div class="rounded-xl bg-slate-50 p-3 text-center">
+                                <div class="text-xs uppercase tracking-wide text-slate-700">Attendance rate</div>
+                                <div class="mt-1 text-2xl font-semibold text-slate-900">{{ $selectedSummary['rate'] }}%</div>
+                            </div>
+                        </div>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="departmentStatusChart" class="w-full h-full"></canvas>
                         </div>
                     </div>
                 </div>
@@ -106,75 +110,89 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        function initWeeklyCharts() {
+            if (typeof Chart === 'undefined') {
+                setTimeout(initWeeklyCharts, 50);
+                return;
+            }
+
             const ctx = document.getElementById('weeklyReportChart');
-            if (!ctx) return;
+            if (ctx) {
+                if (Chart.getChart(ctx)) {
+                    Chart.getChart(ctx).destroy();
+                }
 
-            const weeklyChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: @json($weeklyLabels),
-                    datasets: [{
-                        label: 'Attendance rate',
-                        data: @json($weeklyData),
-                        backgroundColor: [
-                            '#6366f1',
-                            '#f97316',
-                            '#22c55e',
-                            '#ec4899',
-                            '#3b82f6',
-                            '#10b981',
-                            '#f59e0b'
-                        ],
-                        borderRadius: 8,
-                        maxBarThickness: 48,
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    onClick: function(_, elements) {
-                        if (!elements.length) {
-                            return;
-                        }
-
-                        const index = elements[0].index;
-                        const selectedDate = weeklyChart.data.labels[index];
-
-                        if (!selectedDate) {
-                            return;
-                        }
-
-                        window.location.href = '{{ route('dashboard') }}?date=' + encodeURIComponent(selectedDate);
+                const weeklyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: @json($weeklyLabels),
+                        datasets: [{
+                            label: 'Attendance rate',
+                            data: @json($weeklyData),
+                            backgroundColor: [
+                                '#6366f1',
+                                '#f97316',
+                                '#22c55e',
+                                '#ec4899',
+                                '#3b82f6',
+                                '#10b981',
+                                '#f59e0b'
+                            ],
+                            borderRadius: 8,
+                            maxBarThickness: 48,
+                            minBarLength: 6,
+                        }],
                     },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
-                                }
-                            },
-                            grid: { color: '#e2e8f0' }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        onClick: function(_, elements) {
+                            if (!elements.length) {
+                                return;
+                            }
+
+                            const index = elements[0].index;
+                            const selectedDate = weeklyChart.data.labels[index];
+
+                            if (!selectedDate) {
+                                return;
+                            }
+
+                            window.location.href = '{{ route('attendance.daily') }}?date=' + encodeURIComponent(selectedDate);
                         },
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.parsed.y + '%';
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                },
+                                grid: { color: '#e2e8f0' }
+                            },
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.parsed.y + '%';
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
 
             const deptCtx = document.getElementById('departmentStatusChart');
             if (deptCtx) {
+                if (Chart.getChart(deptCtx)) {
+                    Chart.getChart(deptCtx).destroy();
+                }
+
                 const present = {{ $selectedSummary['present'] ?? 0 }};
                 const absent = {{ $selectedSummary['absent'] ?? 0 }};
                 const late = {{ $selectedSummary['late'] ?? 0 }};
@@ -210,6 +228,13 @@
                     }
                 });
             }
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initWeeklyCharts);
+        } else {
+            initWeeklyCharts();
+        }
+        document.addEventListener('turbo:load', initWeeklyCharts);
     </script>
 </x-app-layout>

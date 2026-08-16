@@ -10,7 +10,7 @@
             <div class="mb-6">
                 <div class="rounded-2xl bg-slate-100 p-4 shadow-sm">
                     <nav class="flex flex-wrap items-center justify-between gap-4">
-                        <a href="{{ route('dashboard', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-indigo-700 bg-indigo-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-indigo-700 inline-flex items-center justify-center">Daily report</a>
+                        <a href="{{ route('attendance.daily') }}" class="flex-1 min-w-[10rem] rounded-xl border border-indigo-700 bg-indigo-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-indigo-700 inline-flex items-center justify-center">Daily report</a>
                         <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-slate-700 bg-slate-700 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-slate-800 inline-flex items-center justify-center">Weekly report</a>
                         <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-emerald-600 bg-emerald-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-emerald-700 inline-flex items-center justify-center">Monthly report</a>
                         <a href="{{ route('attendance.quarterly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-amber-600 bg-amber-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-amber-700 inline-flex items-center justify-center">Quartely report</a>
@@ -85,9 +85,18 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        function initDashboardHome() {
+            if (typeof Chart === 'undefined') {
+                setTimeout(initDashboardHome, 50);
+                return;
+            }
+
             const periodCtx = document.getElementById('attendancePeriodSummaryChart');
             if (periodCtx) {
+                if (Chart.getChart(periodCtx)) {
+                    Chart.getChart(periodCtx).destroy();
+                }
+
                 new Chart(periodCtx, {
                     type: 'bar',
                     data: {
@@ -120,6 +129,10 @@
 
             const departmentCtx = document.getElementById('departmentRatesChart');
             if (departmentCtx) {
+                if (Chart.getChart(departmentCtx)) {
+                    Chart.getChart(departmentCtx).destroy();
+                }
+
                 new Chart(departmentCtx, {
                     type: 'bar',
                     data: {
@@ -159,6 +172,13 @@
                     }
                 });
             }
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDashboardHome);
+        } else {
+            initDashboardHome();
+        }
+        document.addEventListener('turbo:load', initDashboardHome);
     </script>
 </x-app-layout>

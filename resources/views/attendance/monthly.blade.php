@@ -11,9 +11,9 @@
                 <div class="rounded-2xl bg-slate-100 p-4 shadow-sm">
                     <nav class="flex flex-wrap items-center justify-between gap-4">
                         @php $monthlyActive = request()->routeIs('attendance.monthly'); @endphp
-                        <a href="{{ route('dashboard', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300">Daily report</a>
-                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300 opacity-80">Weekly report</a>
-                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $monthlyActive ? 'border-4 border-black bg-emerald-600 text-white shadow-xl relative z-10 -translate-y-1 hover:bg-emerald-700' : 'border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300 opacity-80' }}">Monthly report</a>
+                        <a href="{{ route('attendance.daily') }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300">Daily report</a>
+                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300">Weekly report</a>
+                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center {{ $monthlyActive ? 'border-4 border-black bg-emerald-600 text-white shadow-xl relative z-10 -translate-y-1 hover:bg-emerald-700' : 'border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300' }}">Monthly report</a>
                         <a href="{{ route('attendance.quarterly', ['date' => request()->query('date') ?? $reportDate->toDateString()]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-amber-600 bg-amber-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-amber-700 inline-flex items-center justify-center">Quartely report</a>
                     </nav>
 
@@ -44,29 +44,35 @@
                 </div>
 
                 <div class="rounded-lg bg-white p-6 shadow-sm order-first xl:order-last">
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div class="rounded-xl bg-slate-50 p-4">
-                            <div class="text-sm uppercase tracking-wide text-slate-500">Overall summary</div>
-                            <div class="mt-3 text-3xl font-semibold text-slate-900">{{ $selectedSummary['total'] }}</div>
-                            <div class="mt-2 text-sm text-slate-600">Total records for the selected month</div>
-                        </div>
-                        <div class="grid gap-4">
-                            <div class="rounded-xl bg-emerald-50 p-4">
-                                <div class="text-sm uppercase tracking-wide text-emerald-700">Present</div>
-                                <div class="mt-2 text-2xl font-semibold text-emerald-800">{{ $selectedSummary['present'] }}</div>
-                            </div>
-                            <div class="rounded-xl bg-red-50 p-4">
-                                <div class="text-sm uppercase tracking-wide text-red-700">Absent</div>
-                                <div class="mt-2 text-2xl font-semibold text-red-800">{{ $selectedSummary['absent'] }}</div>
-                            </div>
-                            <div class="rounded-xl bg-amber-50 p-4">
-                                <div class="text-sm uppercase tracking-wide text-amber-700">Late</div>
-                                <div class="mt-2 text-2xl font-semibold text-amber-800">{{ $selectedSummary['late'] }}</div>
-                            </div>
+                    <h3 class="text-lg font-semibold mb-4">Monthly summary</h3>
+                    <div class="grid gap-4 md:grid-cols-2 items-center">
+                        <div class="space-y-4">
                             <div class="rounded-xl bg-slate-50 p-4">
-                                <div class="text-sm uppercase tracking-wide text-slate-700">Attendance rate</div>
-                                <div class="mt-2 text-2xl font-semibold text-slate-900">{{ $selectedSummary['rate'] }}%</div>
+                                <div class="text-sm uppercase tracking-wide text-slate-500">Overall summary</div>
+                                <div class="mt-2 text-3xl font-semibold text-slate-900">{{ $selectedSummary['total'] }}</div>
+                                <div class="mt-1 text-xs text-slate-500">Total records for the selected month</div>
                             </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="rounded-xl bg-emerald-50 p-3 text-center">
+                                    <div class="text-xs uppercase tracking-wide text-emerald-700">Present</div>
+                                    <div class="mt-1 text-xl font-semibold text-emerald-800">{{ $selectedSummary['present'] }}</div>
+                                </div>
+                                <div class="rounded-xl bg-red-50 p-3 text-center">
+                                    <div class="text-xs uppercase tracking-wide text-red-700">Absent</div>
+                                    <div class="mt-1 text-xl font-semibold text-red-800">{{ $selectedSummary['absent'] }}</div>
+                                </div>
+                                <div class="rounded-xl bg-amber-50 p-3 text-center">
+                                    <div class="text-xs uppercase tracking-wide text-amber-700">Late</div>
+                                    <div class="mt-1 text-xl font-semibold text-amber-800">{{ $selectedSummary['late'] }}</div>
+                                </div>
+                            </div>
+                            <div class="rounded-xl bg-slate-50 p-3 text-center">
+                                <div class="text-xs uppercase tracking-wide text-slate-700">Attendance rate</div>
+                                <div class="mt-1 text-2xl font-semibold text-slate-900">{{ $selectedSummary['rate'] }}%</div>
+                            </div>
+                        </div>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="monthlyStatusChart" class="w-full h-full"></canvas>
                         </div>
                     </div>
                 </div>
@@ -106,68 +112,127 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        function initMonthlyCharts() {
+            if (typeof Chart === 'undefined') {
+                setTimeout(initMonthlyCharts, 50);
+                return;
+            }
+
             const ctx = document.getElementById('monthlyReportChart');
-            if (!ctx) return;
+            if (ctx) {
+                if (Chart.getChart(ctx)) {
+                    Chart.getChart(ctx).destroy();
+                }
 
-            const weeklyBucketDates = @json($weeklyBucketStartDates ?? []);
+                const weeklyBucketDates = @json($weeklyBucketStartDates ?? []);
 
-            const monthlyChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: @json($monthlyLabels),
-                    datasets: [{
-                        label: 'Attendance rate',
-                        data: @json($monthlyData),
-                        backgroundColor: [
-                            '#10b981', '#34d399', '#6ee7b7', '#14b8a6', '#0ea5e9', '#6366f1', '#8b5cf6'
-                        ],
-                        borderRadius: 8,
-                        maxBarThickness: 48,
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    onClick: function(_, elements) {
-                        if (!elements.length) {
-                            return;
-                        }
-
-                        const index = elements[0].index;
-                        const selectedWeekDate = weeklyBucketDates[index];
-
-                        if (!selectedWeekDate) {
-                            return;
-                        }
-
-                        window.location.href = '{{ route('attendance.weekly') }}?date=' + encodeURIComponent(selectedWeekDate);
+                const monthlyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: @json($monthlyLabels),
+                        datasets: [{
+                            label: 'Attendance rate',
+                            data: @json($monthlyData),
+                            backgroundColor: [
+                                '#10b981', '#34d399', '#6ee7b7', '#14b8a6', '#0ea5e9', '#6366f1', '#8b5cf6'
+                            ],
+                            borderRadius: 8,
+                            maxBarThickness: 48,
+                            minBarLength: 6,
+                        }],
                     },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
-                                }
-                            },
-                            grid: { color: '#e2e8f0' }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        onClick: function(_, elements) {
+                            if (!elements.length) {
+                                return;
+                            }
+
+                            const index = elements[0].index;
+                            const selectedWeekDate = weeklyBucketDates[index];
+
+                            if (!selectedWeekDate) {
+                                return;
+                            }
+
+                            window.location.href = '{{ route('attendance.weekly') }}?date=' + encodeURIComponent(selectedWeekDate);
                         },
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.parsed.y + '%';
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                },
+                                grid: { color: '#e2e8f0' }
+                            },
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.parsed.y + '%';
+                                    }
                                 }
                             }
                         }
                     }
+                });
+            }
+
+            const pieCtx = document.getElementById('monthlyStatusChart');
+            if (pieCtx) {
+                if (Chart.getChart(pieCtx)) {
+                    Chart.getChart(pieCtx).destroy();
                 }
-            });
-        });
+
+                const present = {{ $selectedSummary['present'] ?? 0 }};
+                const absent = {{ $selectedSummary['absent'] ?? 0 }};
+                const late = {{ $selectedSummary['late'] ?? 0 }};
+
+                new Chart(pieCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Present', 'Absent', 'Late'],
+                        datasets: [{
+                            data: [present, absent, late],
+                            backgroundColor: ['#16a34a', '#ef4444', '#f59e0b'],
+                            borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+                            borderWidth: 2,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle' } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const total = context.dataset.data.reduce((sum, item) => sum + item, 0);
+                                        const percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMonthlyCharts);
+        } else {
+            initMonthlyCharts();
+        }
+        document.addEventListener('turbo:load', initMonthlyCharts);
     </script>
 </x-app-layout>

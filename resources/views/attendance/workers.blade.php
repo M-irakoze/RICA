@@ -10,10 +10,9 @@
             <div class="mb-6">
                 <div class="rounded-2xl bg-slate-100 p-4 shadow-sm">
                     <nav class="flex flex-wrap items-center justify-between gap-4">
-                        @php $workersActive = request()->routeIs('attendance.workers'); @endphp
-                        <a href="{{ route('dashboard', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300">Daily report</a>
-                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300 opacity-80">Weekly report</a>
-                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-emerald-600 bg-emerald-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-emerald-700 inline-flex items-center justify-center opacity-50 filter blur-sm">Monthly report</a>
+                        <a href="{{ route('attendance.daily') }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300">Daily report</a>
+                        <a href="{{ route('attendance.weekly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg font-semibold inline-flex items-center justify-center border border-slate-300 bg-slate-200 text-slate-700 shadow-sm hover:bg-slate-300">Weekly report</a>
+                        <a href="{{ route('attendance.monthly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-emerald-600 bg-emerald-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-emerald-700 inline-flex items-center justify-center">Monthly report</a>
                         <a href="{{ route('attendance.quarterly', ['date' => request()->query('date') ?? ($reportDate ?? now()->toDateString())]) }}" class="flex-1 min-w-[10rem] rounded-xl border border-amber-600 bg-amber-600 px-6 py-4 text-lg font-semibold text-white shadow-sm hover:bg-amber-700 inline-flex items-center justify-center">Quartely report</a>
                     </nav>
 
@@ -32,14 +31,14 @@
                             'weekly' => 'attendance.weekly',
                             'monthly' => 'attendance.monthly',
                             'quarterly' => 'attendance.quarterly',
-                            default => 'dashboard',
+                            default => 'attendance.daily',
                         };
                         $workersScope = $currentScope === 'personal' ? $currentPeriod : $currentScope;
                     @endphp
                     <div class="mt-4 flex flex-wrap gap-3" id="reportTabs">
-                        <a href="{{ route($overallRoute, ['date' => $currentDate]) }}" id="overallTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if((request()->routeIs('dashboard') && $overallRoute === 'dashboard') || (request()->routeIs($overallRoute) && $overallRoute !== 'dashboard')) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Overall</a>
+                        <a href="{{ route($overallRoute, ['date' => $currentDate]) }}" id="overallTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100">Overall</a>
                         <a href="{{ route($departmentRoute, ['date' => $currentDate]) }}" id="departmentTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs($departmentRoute)) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Departments</a>
-                        <a href="{{ route('attendance.workers', ['date' => $currentDate, 'scope' => $workersScope]) }}" id="workersTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center @if(request()->routeIs('attendance.workers') && (request()->query('scope', 'daily') === $workersScope || request()->query('period') === $workersScope)) border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5 @else border border-slate-300 bg-transparent font-semibold text-slate-700 shadow-sm hover:bg-slate-100 @endif">Workers</a>
+                        <a href="{{ route('attendance.workers', ['date' => $currentDate, 'scope' => $workersScope]) }}" id="workersTab" class="flex-1 min-w-[10rem] rounded-xl px-6 py-4 text-lg inline-flex items-center justify-center border border-black bg-slate-200/50 font-bold text-slate-900 shadow-lg -translate-y-0.5">Workers</a>
                     </div>
                 </div>
             </div>
@@ -262,13 +261,14 @@
             </div>
 
             <script>
-                document.addEventListener('DOMContentLoaded', function () {
+                function initWorkersModal() {
                     const modal = document.getElementById('personalAttendanceOverlay');
                     const closeBtn = document.getElementById('closePersonalAttendance');
                     const downloadBtn = document.getElementById('downloadPersonalAttendancePdf');
-                    if (!modal || !closeBtn) {
+                    if (!modal || !closeBtn || modal.dataset.initialized === 'true') {
                         return;
                     }
+                    modal.dataset.initialized = 'true';
 
                     closeBtn.addEventListener('click', function () {
                         modal.classList.add('hidden');
@@ -291,7 +291,14 @@
                             window.print();
                         });
                     }
-                });
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initWorkersModal);
+                } else {
+                    initWorkersModal();
+                }
+                document.addEventListener('turbo:load', initWorkersModal);
             </script>
 
         </div>
