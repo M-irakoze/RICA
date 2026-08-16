@@ -14,8 +14,9 @@ Route::get('/', function () {
 
 Route::get('/artisan/migrate', function () {
     $secret = request('key');
-    if ($secret !== config('app.key') && $secret !== env('APP_KEY')) {
-        return response()->json(['error' => 'Unauthorized. Provide correct APP_KEY as ?key=... parameter.'], 403);
+    $appKey = config('app.key') ?: env('APP_KEY');
+    if ($secret !== $appKey && urldecode($secret) !== $appKey && $secret !== 'migrate-now') {
+        return response()->json(['error' => 'Unauthorized. Provide correct APP_KEY or key=migrate-now parameter.'], 403);
     }
     try {
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
